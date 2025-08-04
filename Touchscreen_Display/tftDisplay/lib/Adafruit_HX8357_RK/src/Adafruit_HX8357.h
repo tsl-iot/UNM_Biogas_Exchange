@@ -34,6 +34,8 @@
 #include "Particle.h"
 
 #include <Adafruit_SPITFT.h>
+#include "../lib/Adafruit_GFX_RK/src/Adafruit_SPITFT.h"
+
 
 #define HX8357D                    0xD
 #define HX8357B                    0xB
