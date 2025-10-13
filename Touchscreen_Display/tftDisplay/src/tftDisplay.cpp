@@ -11,11 +11,13 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_HX8357.h>
 #include "Adafruit_TSC2007.h"
+#include <Adafruit_HDC302x.h>
 
 #include "../lib/Adafruit_GFX_RK/src/Adafruit_GFX_RK.h"
 #include "../lib/Adafruit_HX8357_RK/src/Adafruit_HX8357_RK.h"
 #include "../lib/Adafruit_TSC2007/src/Adafruit_TSC2007.h"
 #include "../lib/Adafruit_BusIO_RK/src/Adafruit_BusIO_Register.h"
+#include "../lib/Adafruit_HDC302x/src/Adafruit_HDC302x.h"
 
 
 
@@ -47,6 +49,17 @@ const int BOXWIDTH = 152;
 const int BOXHEIGHT = 232;
 const int PENRADIUS = 3;
 uint16_t oldcolor, currentcolor;
+double baseTemp;
+float baseTempF;
+double postChamberTemp;
+float postChamberTempF;
+double baseRH;
+double postChamberRH;
+
+Adafruit_HDC302x baseBME = Adafruit_HDC302x();
+Adafruit_HDC302x chamberBME = Adafruit_HDC302x();
+
+
 
 void setup() {
   Serial.begin(9600);
@@ -57,18 +70,34 @@ void setup() {
     while (1) 
     delay(100);
   }
+   if (!baseBME.begin(0x44)) {
+    Serial.printf("Could not find sensor?");
+    //while (1);
+  }
+   if (!chamberBME.begin(0x47)) {
+    Serial.printf("Could not find sensor?");
+    //while (1);
+  }
+
+
   min_x = TSC_TS_MINX; max_x = TSC_TS_MAXX;
   min_y = TSC_TS_MINY; max_y = TSC_TS_MAXY;
   pinMode(TSC_IRQ, INPUT);
   Serial.printf("Touchscreen started");
 
   tft.begin();
+  tft.setRotation(1);
   tft.fillScreen(HX8357_BLACK);
-  // make the color selection boxes (X,Y, WIDTH, HEIGHT, COLOR)
-  tft.fillRect(4, 4, BOXWIDTH, BOXHEIGHT, HX8357_RED);
-  tft.fillRect(8 + BOXWIDTH, 4, BOXWIDTH, BOXHEIGHT, HX8357_YELLOW);
-  tft.fillRect(4, 8 + BOXHEIGHT, BOXWIDTH, BOXHEIGHT, HX8357_GREEN);
-  tft.fillRect(8 + BOXWIDTH, 8 + BOXHEIGHT, BOXWIDTH, BOXHEIGHT, HX8357_CYAN);
+  // // make the color selection boxes (X,Y, WIDTH, HEIGHT, COLOR)
+  // tft.fillRect(4, 4, BOXWIDTH, BOXHEIGHT, HX8357_RED);
+  // tft.fillRect(8 + BOXWIDTH, 4, BOXWIDTH, BOXHEIGHT, HX8357_YELLOW);
+  // tft.fillRect(4, 8 + BOXHEIGHT, BOXWIDTH, BOXHEIGHT, HX8357_GREEN);
+  // tft.fillRect(8 + BOXWIDTH, 8 + BOXHEIGHT, BOXWIDTH, BOXHEIGHT, HX8357_CYAN);
+  for(int i = 0; i < 480; i = i + (480/3)){
+    tft.drawRect(i,0,(480/3.0),320,HX8357_WHITE);
+  }
+  tft.drawRect(0,0,480,40,HX8357_WHITE);
+
 
 //   // select the current color 'red'
 // tft.drawRect(0, 0, BOXSIZE, BOXSIZE, HX8357_WHITE);
@@ -89,6 +118,14 @@ void loop(void) {
   p.x = map(p.x, min_x, max_x, 0, tft.width());
   p.y = map(p.y, min_y, max_y, 0, tft.height());
   Serial.printf("X: %i\nY: %i\nPressure: %i\n", p.x, p.y, p.z);
+// BME READINGS
+  baseBME.readTemperatureHumidityOnDemand(baseTemp, baseRH, TRIGGERMODE_LP0);
+  baseTempF = (baseTemp*9.0/5.0) + 32;
+
+  chamberBME.readTemperatureHumidityOnDemand(postChamberTemp, postChamberRH, TRIGGERMODE_LP0);
+  postChamberTempF = (postChamberTemp*9.0/5.0) + 32;
+
+
 
 // if (p.y < BOXSIZE) {
 //   oldcolor = currentcolor;

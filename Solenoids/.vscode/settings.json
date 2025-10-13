@@ -4,7 +4,5 @@
     "files.associations": {
         "*.ino": "cpp"
     },
-    "particle.firmwareVersion": "6.3.3",
-    "particle.targetPlatform": "p2",
-    "C_Cpp.errorSquiggles": "enabled"
+    "particle.firmwareVersion": "6.3.3"
 }
