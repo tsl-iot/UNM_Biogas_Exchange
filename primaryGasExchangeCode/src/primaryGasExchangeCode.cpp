@@ -15,8 +15,6 @@
 #include "adafruit-max31855.h"
 #include "IoTClassroom_CNM.h"
 
-
-
 #include "../lib/Adafruit_GFX_RK/src/Adafruit_GFX_RK.h"
 #include "../lib/Adafruit_HX8357_RK/src/Adafruit_HX8357_RK.h"
 #include "../lib/Adafruit_TSC2007/src/Adafruit_TSC2007.h"
@@ -65,9 +63,6 @@ double chamberRHReading;
 float leafThermoTemp;
 
 
-
-
-
 // Function Declarations
 void hdc302xInit(int address_1, int address_2);
 void displayInit();
@@ -80,12 +75,11 @@ void getAS7341Readings(uint16_t *readingsArray, float *countsArray);
 float mapFloat(float value, float inMin, float inMax, float outMin, float outMax);
 void nmToBars(float * basicCounts);
 void get_HDC_T_H(float *base_T, double *base_RH, float *chamber_T, double *chamber_RH);
-void display_T_H(float temperature, double humOrCO2, String sensorLabel, bool rHum);
+void display_T_H(float bTemperature, float cTemperature, double bHum, double cHum);
 void displaySolenoidControls();
 float getThermoTemp();
 int getCO2();
 float intoVolts(int bits);
-
 
 // Class Objects
 Adafruit_HDC302x base_T_H = Adafruit_HDC302x();
@@ -112,15 +106,17 @@ void setup() {
   displaySolenoidControls();
 
   delay(2000);
+  tft.fillRect(76,160,(DISPLAY_W-76)/2,160, HX8357_VIOLET);
+  tft.fillRect(278,160,(DISPLAY_W-76)/2,160, HX8357_INDIGO);
 }
-
 
 void loop() {
 
   readTS();
   if((millis() - lastPrint) > 1000){
     getAS7341Readings(as7341Readings, as7341Counts);
-    nmToBars(as7341Counts);
+    //nmToBars(as7341Counts);
+    display_T_H(baseTempReading, chamberTempReading, baseRHReading, chamberRHReading);
     
     leafThermoTemp = getThermoTemp();
     Serial.printf("Base Temp: %0.1f\nBase RH: %0.1f\nChamber Temp: %0.1f\nChamber RH: %0.1f\nleaf temp: %0.1f\n", baseTempReading, baseRHReading, chamberTempReading, chamberRHReading, leafThermoTemp);
@@ -191,18 +187,18 @@ void calibrateTherm(){ // can either be called with "calTemp:XX" where xx is the
 
 // Get X, Y, & pressure values
 void readTS(){
-  int buttonRad = 35;
-  static bool s1_toggle;
-  static bool s2_toggle;
-  static bool s3_toggle;
+  // int buttonRad = 35;
+  // static bool s1_toggle;
+  // static bool s2_toggle;
+  // static bool s3_toggle;
 
-  static bool lastS1Toggle;
-  static bool lastS2Toggle;
-  static bool lastS3Toggle;
+  // static bool lastS1Toggle;
+  // static bool lastS2Toggle;
+  // static bool lastS3Toggle;
 
-  static bool s1Clicked;
-  static bool s2Clicked;
-  static bool s3Clicked;
+  // static bool s1Clicked;
+  // static bool s2Clicked;
+  // static bool s3Clicked;
   static int which_TH;
 
 
@@ -227,99 +223,88 @@ void readTS(){
   
   
   
-    if((p.y > 15) && (p.y < 65)){
-      if((p.x > 240) && (p.x < 290)){
+  //   if((p.y > 15) && (p.y < 65)){
+  //     if((p.x > 240) && (p.x < 290)){
       
-      which_TH = 1;
-    }
-    if((p.x > 130) && (p.x < 180)){
+  //     which_TH = 1;
+  //   }
+  //   if((p.x > 130) && (p.x < 180)){
       
-      which_TH = 2;
-    }
-    if((p.x > 30) && (p.x < 80)){
+  //     which_TH = 2;
+  //   }
+  //   if((p.x > 30) && (p.x < 80)){
       
-      which_TH = 3;
-    }
-  }
+  //     which_TH = 3;
+  //   }
+  // }
 
-  switch (which_TH){
-  case 1:
-    display_T_H(baseTempReading, baseRHReading, "Base", true);
-    break;
-  case 2:
-    display_T_H(chamberTempReading, chamberRHReading, "Chamber", true);
-    break;
-  case 3:
-    display_T_H(leafThermoTemp, getCO2(), "Leaf", false);
-    break;
-  default:
-    which_TH = 1;
-    break;
-  }
 
-  lastS1Toggle = s1_toggle;
-  if((p.x > 80) && (p.x < 150) && (p.y > 320)&& (p.y <400)){
-    s1_toggle = true;
-    if(s1_toggle != lastS1Toggle){
-    s1Clicked = !s1Clicked;
-  }
-  s1_toggle = false;
-}
-    if(s1Clicked){
-      tft.fillCircle(347, 205, buttonRad, HX8357_GREEN);
-      tft.setCursor(325, 185);
-      tft.printf("S1");
-      digitalWrite(SOLENOID_1PIN, HIGH);
-    }
-    else{
-      tft.fillCircle(347, 205, buttonRad, HX8357_RED);
-      tft.setCursor(325, 185);
-      tft.printf("S1");
-      digitalWrite(SOLENOID_1PIN, LOW);
-    }
+  
+   
+
+//   lastS1Toggle = s1_toggle;
+//   if((p.x > 80) && (p.x < 150) && (p.y > 320)&& (p.y <400)){
+//     s1_toggle = true;
+//     if(s1_toggle != lastS1Toggle){
+//     s1Clicked = !s1Clicked;
+//   }
+//   s1_toggle = false;
+// }
+//     if(s1Clicked){
+//       tft.fillCircle(347, 205, buttonRad, HX8357_GREEN);
+//       tft.setCursor(325, 185);
+//       tft.printf("S1");
+//       digitalWrite(SOLENOID_1PIN, HIGH);
+//     }
+//     else{
+//       tft.fillCircle(347, 205, buttonRad, HX8357_RED);
+//       tft.setCursor(325, 185);
+//       tft.printf("S1");
+//       digitalWrite(SOLENOID_1PIN, LOW);
+//     }
 
  
-    lastS2Toggle = s2_toggle;
-  if((p.x > 20) && (p.x < 90) && (p.y > 245)&& (p.y <320)){
-    s2_toggle = true;
-    if(s2_toggle != lastS2Toggle){
-    s2Clicked = !s2Clicked;
-  }
-  s2_toggle = false;
-}
-    if(s2Clicked){
-      tft.fillCircle(274, 265, buttonRad, HX8357_GREEN);
-      tft.setCursor(252, 245);
-      tft.printf("S2");
-      digitalWrite(SOLENOID_2PIN, HIGH);
-    }
-    else{
-      tft.fillCircle(274, 265, buttonRad, HX8357_RED);
-      tft.setCursor(252, 245);
-      tft.printf("S2");
-      digitalWrite(SOLENOID_2PIN, LOW);
-    }
+//     lastS2Toggle = s2_toggle;
+//   if((p.x > 20) && (p.x < 90) && (p.y > 245)&& (p.y <320)){
+//     s2_toggle = true;
+//     if(s2_toggle != lastS2Toggle){
+//     s2Clicked = !s2Clicked;
+//   }
+//   s2_toggle = false;
+// }
+//     if(s2Clicked){
+//       tft.fillCircle(274, 265, buttonRad, HX8357_GREEN);
+//       tft.setCursor(252, 245);
+//       tft.printf("S2");
+//       digitalWrite(SOLENOID_2PIN, HIGH);
+//     }
+//     else{
+//       tft.fillCircle(274, 265, buttonRad, HX8357_RED);
+//       tft.setCursor(252, 245);
+//       tft.printf("S2");
+//       digitalWrite(SOLENOID_2PIN, LOW);
+//     }
   
-lastS3Toggle = s3_toggle;
-  if((p.x > 25) && (p.x < 100) && (p.y > 400)&& (p.y <475)){
-s3_toggle = true;
-    if(s3_toggle != lastS3Toggle){
-    s3Clicked = !s3Clicked;
-  }
-  s3_toggle = false;
-  }
-    if(s3Clicked){
-      tft.fillCircle(423, 265, buttonRad, HX8357_GREEN);
-      tft.setCursor(401, 245);
-      tft.printf("S3");
-      digitalWrite(SOLENOID_3PIN, HIGH);
-    }
-    else{
-      tft.fillCircle(423, 265, buttonRad, HX8357_RED);
-      tft.setCursor(401, 245);
-      tft.printf("S3");
-      digitalWrite(SOLENOID_3PIN, LOW);
-    }
+// lastS3Toggle = s3_toggle;
+//   if((p.x > 25) && (p.x < 100) && (p.y > 400)&& (p.y <475)){
+// s3_toggle = true;
+//     if(s3_toggle != lastS3Toggle){
+//     s3Clicked = !s3Clicked;
+//   }
+//   s3_toggle = false;
+//   }
+//     if(s3Clicked){
+//       tft.fillCircle(423, 265, buttonRad, HX8357_GREEN);
+//       tft.setCursor(401, 245);
+//       tft.printf("S3");
+//       digitalWrite(SOLENOID_3PIN, HIGH);
+//     }
+//     else{
+//       tft.fillCircle(423, 265, buttonRad, HX8357_RED);
+//       tft.setCursor(401, 245);
+//       tft.printf("S3");
+//       digitalWrite(SOLENOID_3PIN, LOW);
+//     }
 
   //   if(((p.x == 0) && (p.y == 0)) || (p.z < 10)){
   //     return; // no pressure, no touch
@@ -338,24 +323,31 @@ void layoutHomeScreen(){
   int temp_hum_box_W = DISPLAY_W - menuRect_W;
   int barGraphBox_H = DISPLAY_H/2;
   int temp_hum_box_H = DISPLAY_H/2;
-  int circleRad = 25;
+  //int circleRad = 25;
   tft.setTextSize(3);
   tft.setRotation(1); // Landscape
   tft.fillScreen(HX8357_BLACK);
-  tft.drawRect(0,0,menuRect_W,DISPLAY_H, HX8357_WHITE); // left panel option menu
-  tft.drawRect(76,0,barGraphBox_W,barGraphBox_H, HX8357_WHITE);
-  tft.drawRect(76,160,temp_hum_box_W,temp_hum_box_H, HX8357_WHITE);
-  tft.fillCircle(38,55,circleRad,HX8357_BLUE);
-  tft.setCursor(32, 45);
-  tft.printf("B");
-  
-  tft.fillCircle(38,160,circleRad,HX8357_INDIGO);
-  tft.setCursor(32, 150);
-  tft.printf("C");
+  //tft.drawRect(0,0,menuRect_W,DISPLAY_H, HX8357_WHITE); // left panel option menu
+  tft.fillRect(0,0,menuRect_W,DISPLAY_H/2, HX8357_GREEN); // left panel option menu
+  tft.fillRect(0,DISPLAY_H/2,menuRect_W,DISPLAY_H/2, HX8357_RED); // left panel option menu
+  //tft.drawLine(0,DISPLAY_H/2,DISPLAY_W*.16,DISPLAY_H/2, HX8357_WHITE);
+  tft.drawRect(76,0,(barGraphBox_W/3)+1,barGraphBox_H, HX8357_WHITE);
+  tft.drawRect(211,0,(barGraphBox_W/3)+2,barGraphBox_H, HX8357_WHITE);  
+  tft.drawRect(345, 0, (barGraphBox_W/3)+1, barGraphBox_H,HX8357_WHITE);
 
-  tft.fillCircle(38,265,circleRad,HX8357_MAGENTA);
-  tft.setCursor(32, 255);
-  tft.printf("L");
+  tft.drawRect(76,160,(DISPLAY_W-76)/2,temp_hum_box_H, HX8357_WHITE);
+  tft.drawRect(278,160,(DISPLAY_W-76)/2,temp_hum_box_H, HX8357_WHITE);
+  //tft.fillCircle(38,55,circleRad,HX8357_BLUE);
+  tft.setCursor(32, 74);
+  tft.printf("C");
+  
+  // tft.fillCircle(38,160,circleRad,HX8357_INDIGO);
+  // tft.setCursor(32, 150);
+  // tft.printf("C");
+
+  //tft.fillCircle(38,265,circleRad,HX8357_MAGENTA);
+  tft.setCursor(32, 234);
+  tft.printf("B");
   
 }
 
@@ -454,30 +446,57 @@ void get_HDC_T_H(float *base_T, double *base_RH, float *chamber_T, double *chamb
   
 }
 
-void display_T_H(float temperature, double humOrCO2, String sensorLabel, bool rHum){
-  get_HDC_T_H(&baseTempReading, &baseRHReading, &chamberTempReading, &chamberRHReading);
+void display_T_H(float bTemperature, float cTemperature, double bHum, double cHum){
+  get_HDC_T_H(&baseTempReading, &baseRHReading, &chamberTempReading, &chamberRHReading); //Returns the Base & the Chamber Temp+Hum
   tft.setTextSize(2);
-  tft.drawRect(77,160,140,160,HX8357_WHITE);
-  tft.fillRect(78,164, 135,18,HX8357_BLACK);
-  tft.setCursor(120, 165);
-  tft.printf("%s", sensorLabel.c_str());
-  tft.setCursor(80, 185);
-  tft.printf("Temperature");
-   tft.fillRect(80,250,130,20, HX8357_BLACK);
-  tft.setCursor(80, 250);
-  if(rHum){
-  tft.printf("RH%c", 0x25);
-  }
-  else{
-    tft.printf("CO2 ppm");
-  }
+  //tft.drawRect(77,160,140,160,HX8357_WHITE);
+
+  //tft.fillRect(76,160,(DISPLAY_W-76)/2,160, HX8357_VIOLET);
+  tft.setCursor(110, 170);
+  tft.printf("Base TempF");
+  tft.setCursor(145, 205);
+  tft.printf("%0.1f\r", bTemperature);
+
+
+  tft.setCursor(110, 250);
+  tft.printf("Base RH");
+  tft.setCursor(145, 285);
+  tft.printf("%0.1f\r", bHum);
+
+  tft.setCursor(304, 170);
+  tft.printf("Chamber TempF");
+  tft.setCursor(350, 205);
+  tft.printf("%0.1f\r", cTemperature);
+
+  tft.setCursor(304, 250);
+  tft.printf("Chamber RH");
+  tft.setCursor(350, 285);
+  tft.printf("%0.1f\r", bHum);
+
+
+  
+
+
+  // tft.setCursor(80, 285);
+  // tft.printf("Base RH: %0.1f", bHum);
+
+  // tft.fillRect(278,160,(DISPLAY_W-76)/2,160, HX8357_INDIGO);
+
+  // tft.setCursor(282, 200);
+  // tft.printf("Chamber TempF: %0.1f", cTemperature);
+  // tft.setCursor(282, 280);
+  // tft.printf("Chamber RH: %0.1f", cHum);
+
+
+
+  
  
-  tft.setCursor(147,225);
-  tft.fillRect(147, 225, 60, 16, HX8357_BLACK);
-  tft.printf("%0.1fF", temperature);
-  tft.setCursor(147, 291);
-  tft.fillRect(147, 291, 60, 16, HX8357_BLACK);  
-  tft.printf("%i", (int)humOrCO2);
+  // tft.setCursor(147,225);
+  // tft.fillRect(147, 225, 60, 16, HX8357_BLACK);
+  // tft.printf("%0.1fF", temperature);
+  // tft.setCursor(147, 291);
+  // tft.fillRect(147, 291, 60, 16, HX8357_BLACK);  
+  // tft.printf("%i", (int)humOrCO2);
 }
 
 void displaySolenoidControls(){
