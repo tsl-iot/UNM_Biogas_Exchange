@@ -12,7 +12,7 @@
 #include "Adafruit_TSC2007.h"
 #include <Adafruit_HDC302x.h>
 #include <Adafruit_AS7341.h>
-#include "adafruit-max31855.h"
+#include <Adafruit_MAX31856.h>
 #include "IoTClassroom_CNM.h"
 
 #include "../lib/Adafruit_GFX_RK/src/Adafruit_GFX_RK.h"
@@ -63,6 +63,8 @@ double chamberRHReading;
 float leafThermoTemp;
 
 
+
+
 // Function Declarations
 void hdc302xInit(int address_1, int address_2);
 void displayInit();
@@ -70,7 +72,7 @@ void readTS();
 void layoutHomeScreen();
 void initAS7341(uint8_t ATIME, uint16_t ASTEP, as7341_gain_t gainFactor);
 void initSolenoidValves(const int S1_PIN, const int S2_PIN, const int S3_PIN);
-void calibrateTherm();
+//void calibrateTherm(); copmmented out for thermocouple upgrade  - JPP
 void getAS7341Readings(uint16_t *readingsArray, float *countsArray);
 float mapFloat(float value, float inMin, float inMax, float outMin, float outMax);
 void nmToBars(float * basicCounts);
@@ -88,7 +90,8 @@ Adafruit_HX8357 tft(TFT_CS, TFT_DC, TFT_RST);
 Adafruit_TSC2007 ts; // newer rev 2 touch contoller
 TS_Point p;
 Adafruit_AS7341 as7341;
-AdafruitMAX31855 chamberThermoCup(THERM_CLK,THERM_CS,THERM_DO);  //software mode
+//AdafruitMAX31855 chamberThermoCup(THERM_CLK,THERM_CS,THERM_DO);  commented out for TC Upgrade - JPP
+Adafruit_MAX31856 leafTC = Adafruit_MAX31856(5, 15, 16, 17);
 
 // Start of the program
 void setup() {
@@ -98,8 +101,8 @@ void setup() {
   hdc302xInit(0x44, 0x47);
   displayInit();
   layoutHomeScreen();
-  chamberThermoCup.init();
-  calibrateTherm();
+  //chamberThermoCup.init();
+  //calibrateTherm(); commented out for TC upgrade - JPP
 
   initAS7341(100,999,AS7341_GAIN_64X);
   initSolenoidValves(SOLENOID_1PIN, SOLENOID_2PIN, SOLENOID_3PIN);
@@ -178,12 +181,12 @@ void initSolenoidValves(const int S1_PIN, const int S2_PIN, const int S3_PIN){
   digitalWrite(S3_PIN, LOW);
 }
 
-// Thermo Calibration function
-void calibrateTherm(){ // can either be called with "calTemp:XX" where xx is the current temp in Celsius or with no argument to calibrate to internal temp sensor
+// Thermo Calibration function   commented out for thermocouple update - JPP
+// void calibrateTherm(){ // can either be called with "calTemp:XX" where xx is the current temp in Celsius or with no argument to calibrate to internal temp sensor
  
-    chamberThermoCup.calibrate();
+//     chamberThermoCup.calibrate();
  
-}
+// }
 
 // Get X, Y, & pressure values
 void readTS(){
@@ -514,7 +517,30 @@ tft.printf("S3");
 }
 
 float getThermoTemp(){
-  return chamberThermoCup.readFarenheit();
+  double tempC = leafTC.readThermocoupleTemperature();
+  double tempF = tempC * (9.0/5.0)  + 32.0;
+  uint8_t fault = leafTC.readFault();
+  if (fault) {
+    if (fault & MAX31856_FAULT_CJRANGE) Serial.println("Cold Junction Range Fault");
+    if (fault & MAX31856_FAULT_TCRANGE) Serial.println("Thermocouple Range Fault");
+    if (fault & MAX31856_FAULT_CJHIGH)  Serial.println("Cold Junction High Fault");
+    if (fault & MAX31856_FAULT_CJLOW)   Serial.println("Cold Junction Low Fault");
+    if (fault & MAX31856_FAULT_TCHIGH)  Serial.println("Thermocouple High Fault");
+    if (fault & MAX31856_FAULT_TCLOW)   Serial.println("Thermocouple Low Fault");
+    if (fault & MAX31856_FAULT_OVUV)    Serial.println("Over/Under Voltage Fault");
+    if (fault & MAX31856_FAULT_OPEN)    Serial.println("Thermocouple Open Fault");
+    return 0.0;
+  }else{
+    Serial.printf("\n");
+    Serial.println("Current temp:");
+    Serial.println(tempF);
+    Serial.printf("\n");
+    return tempF;
+    }
+  
+
+
+  
 }
 
 float intoVolts(int bits){
