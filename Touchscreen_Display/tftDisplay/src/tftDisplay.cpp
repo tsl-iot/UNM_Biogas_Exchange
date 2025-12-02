@@ -49,6 +49,7 @@ const int BOXWIDTH = 152;
 const int BOXHEIGHT = 232;
 const int PENRADIUS = 3;
 uint16_t oldcolor, currentcolor;
+<<<<<<< HEAD
 double baseTemp;
 float baseTempF;
 double postChamberTemp;
@@ -60,8 +61,13 @@ Adafruit_HDC302x baseBME = Adafruit_HDC302x();
 Adafruit_HDC302x chamberBME = Adafruit_HDC302x();
 
 
+=======
+int menuSelection;
+int lastSelection;
+>>>>>>> 258ecc1900011b6acb8cd3e146c11b8d504a109e
 
-void setup() {
+int startMenu(TS_Point pos, const int _BOXWIDTH, const int _BOXHEIGHT);
+  void setup() {
   Serial.begin(9600);
   //while (!Serial) delay(10);
   Serial.println("HX8357D Featherwing touch test!");
@@ -99,11 +105,27 @@ void setup() {
   tft.drawRect(0,0,480,40,HX8357_WHITE);
 
 
+  tft.setTextColor(HX8357_BLACK);
+  tft.setTextSize(2);
+
+  tft.setCursor(30,120);
+  tft.printf("Option 1");
+
+  tft.setCursor(180,120);
+  tft.printf("Option 2");
+
+  tft.setCursor(30,360);
+  tft.printf("Option 3");
+
+  tft.setCursor(180,360);
+  tft.printf("Option 4");
+
 //   // select the current color 'red'
 // tft.drawRect(0, 0, BOXSIZE, BOXSIZE, HX8357_WHITE);
 // currentcolor = HX8357_RED;
 }
 void loop(void) {
+
 
   if (digitalRead(TSC_IRQ)) {
 // IRQ pin is high, nothing to read!
@@ -117,6 +139,7 @@ void loop(void) {
 // Scale from ~0->4000 to tft.width using the calibration #'s
   p.x = map(p.x, min_x, max_x, 0, tft.width());
   p.y = map(p.y, min_y, max_y, 0, tft.height());
+<<<<<<< HEAD
   Serial.printf("X: %i\nY: %i\nPressure: %i\n", p.x, p.y, p.z);
 // BME READINGS
   baseBME.readTemperatureHumidityOnDemand(baseTemp, baseRH, TRIGGERMODE_LP0);
@@ -126,6 +149,15 @@ void loop(void) {
   postChamberTempF = (postChamberTemp*9.0/5.0) + 32;
 
 
+=======
+  //Serial.printf("X: %i\nY: %i\nPressure: %i\n", p.x, p.y, p.z);
+  menuSelection = startMenu(p, BOXWIDTH, BOXHEIGHT);
+
+  if(menuSelection != lastSelection){
+    Serial.printf("option selected: %i\n", menuSelection);
+    lastSelection = menuSelection;
+  }
+>>>>>>> 258ecc1900011b6acb8cd3e146c11b8d504a109e
 
 // if (p.y < BOXSIZE) {
 //   oldcolor = currentcolor;
@@ -177,3 +209,30 @@ void loop(void) {
 // tft.fillCircle(p.x, p.y, PENRADIUS, currentcolor);
 // }
 }
+
+int startMenu(TS_Point pos, const int _BOXWIDTH, const int _BOXHEIGHT){
+  static int currentSelection;
+
+  if((pos.x < _BOXWIDTH) && (pos.y < _BOXHEIGHT)){
+    //Serial.printf("Quadrant 1 selected\n");
+    currentSelection = 1;
+    tft.drawRect(4, 4, BOXWIDTH, BOXHEIGHT, HX8357_WHITE);
+  }
+  else if((pos.x > _BOXWIDTH) && (pos.y < _BOXHEIGHT)){
+    //Serial.printf("Quadrant 2 selected\n");
+    currentSelection = 2;
+    tft.drawRect(8 + BOXWIDTH, 4, BOXWIDTH, BOXHEIGHT, HX8357_WHITE);
+  }
+  else if((pos.x < _BOXWIDTH) && (pos.y> _BOXHEIGHT)){
+    //Serial.printf("Quadrant 3 selected\n");
+    currentSelection = 3;
+    tft.drawRect(4, 8 + BOXHEIGHT, BOXWIDTH, BOXHEIGHT, HX8357_WHITE);
+  }
+  else if((pos.x > _BOXWIDTH) && (pos.y > _BOXHEIGHT)){
+    //Serial.printf("Quadrant 4 selected\n");
+    currentSelection = 4;
+    tft.drawRect(8 + BOXWIDTH, 8 + BOXHEIGHT, BOXWIDTH, BOXHEIGHT, HX8357_WHITE);
+  }
+  return currentSelection;
+}
+
