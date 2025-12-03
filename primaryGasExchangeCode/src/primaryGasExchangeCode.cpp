@@ -12,7 +12,7 @@
 #include "Adafruit_TSC2007.h"
 #include <Adafruit_HDC302x.h>
 #include <Adafruit_AS7341.h>
-#include <Adafruit_MAX31856.h>
+#include <Adafruit_MAX31856.h>  //added for new TC - JPP
 #include "IoTClassroom_CNM.h"
 
 #include "../lib/Adafruit_GFX_RK/src/Adafruit_GFX_RK.h"
@@ -72,7 +72,7 @@ void readTS();
 void layoutHomeScreen();
 void initAS7341(uint8_t ATIME, uint16_t ASTEP, as7341_gain_t gainFactor);
 void initSolenoidValves(const int S1_PIN, const int S2_PIN, const int S3_PIN);
-//void calibrateTherm(); copmmented out for thermocouple upgrade  - JPP
+//void calibrateTherm(); commented out for thermocouple upgrade  - JPP
 void getAS7341Readings(uint16_t *readingsArray, float *countsArray);
 float mapFloat(float value, float inMin, float inMax, float outMin, float outMax);
 void nmToBars(float * basicCounts);
@@ -91,7 +91,7 @@ Adafruit_TSC2007 ts; // newer rev 2 touch contoller
 TS_Point p;
 Adafruit_AS7341 as7341;
 //AdafruitMAX31855 chamberThermoCup(THERM_CLK,THERM_CS,THERM_DO);  commented out for TC Upgrade - JPP
-Adafruit_MAX31856 leafTC = Adafruit_MAX31856(5, 15, 16, 17);
+Adafruit_MAX31856 leafTC = Adafruit_MAX31856(5, 15, 16, 17); // object for new TC - JPP
 
 // Start of the program
 void setup() {
@@ -111,6 +111,12 @@ void setup() {
   delay(2000);
   tft.fillRect(76,160,(DISPLAY_W-76)/2,160, HX8357_VIOLET);
   tft.fillRect(278,160,(DISPLAY_W-76)/2,160, HX8357_INDIGO);
+
+
+  // set up for new TC - JPP
+  leafTC.begin();
+  leafTC.setThermocoupleType(MAX31856_TCTYPE_K);
+
 }
 
 void loop() {
