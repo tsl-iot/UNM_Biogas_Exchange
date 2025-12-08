@@ -15,12 +15,28 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 
 Adafruit_VEML7700 luxSensor;
 
-int luxVal;
+float getLux();
+void initVEML7700();
+
+float luxVal;
 
 void setup() {
   Serial.begin(9600);
   waitFor(Serial.isConnected, 5000);
+  initVEML7700();
+}
 
+void loop() {
+  luxVal = getLux();
+  Serial.printf("%0.2f\n", luxVal);
+  delay(5000);
+}
+
+float getLux(){
+  return luxSensor.readLux();
+}
+
+void initVEML7700(){
   if(!luxSensor.begin()){
     Serial.printf("VEML7700 not recognized\n");
   }
@@ -31,8 +47,3 @@ void setup() {
   luxSensor.setIntegrationTime(VEML7700_IT_100MS);
 }
 
-void loop() {
-  luxVal = luxSensor.readLux();
-  Serial.printf("%i\n", luxVal);
-  delay(5000);
-}

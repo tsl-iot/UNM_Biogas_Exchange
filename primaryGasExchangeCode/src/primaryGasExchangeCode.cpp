@@ -11,16 +11,16 @@
 #include <Adafruit_HX8357.h>
 #include "Adafruit_TSC2007.h"
 #include <Adafruit_HDC302x.h>
-#include <Adafruit_AS7341.h>
+
 #include <Adafruit_MAX31856.h>  //added for new TC - JPP
 #include "IoTClassroom_CNM.h"
+#include "Adafruit_VEML7700.h"
 
 #include "../lib/Adafruit_GFX_RK/src/Adafruit_GFX_RK.h"
 #include "../lib/Adafruit_HX8357_RK/src/Adafruit_HX8357_RK.h"
 #include "../lib/Adafruit_TSC2007/src/Adafruit_TSC2007.h"
 #include "../lib/Adafruit_BusIO_Register/src/Adafruit_BusIO_Register.h"
 #include "../lib/Adafruit_HDC302x/src/Adafruit_HDC302x.h"
-#include "../lib/Adafruit_AS7341/src/Adafruit_AS7341.h"
 SYSTEM_MODE(SEMI_AUTOMATIC);
 
 // Constants
@@ -51,9 +51,7 @@ const int LICORINPUTPIN = A5;
 
 // Variables
 int16_t min_x, max_x, min_y, max_y;
-uint16_t as7341Readings[12];
-float as7341Counts[12];
-float as7341ConvertedCounts[8];
+
 static unsigned int lastPrint;
 
 float baseTempReading;
@@ -67,6 +65,9 @@ int dataOriginLux = 211;
 int dataOriginLeafTemp = 345;
 int dataOriginBaseTH = 76;
 int dataOriginLeafTH = 278;
+float luxReading;
+float co2Val;
+
 
 
 
@@ -75,18 +76,20 @@ void hdc302xInit(int address_1, int address_2);
 void displayInit();
 void readTS();
 void layoutHomeScreen();
-void initAS7341(uint8_t ATIME, uint16_t ASTEP, as7341_gain_t gainFactor);
+
 void initSolenoidValves(const int S1_PIN, const int S2_PIN, const int S3_PIN);
 //void calibrateTherm(); commented out for thermocouple upgrade  - JPP
-void getAS7341Readings(uint16_t *readingsArray, float *countsArray);
-float mapFloat(float value, float inMin, float inMax, float outMin, float outMax);
-void nmToBars(float * basicCounts);
+
+
 void get_HDC_T_H(float *base_T, double *base_RH, float *chamber_T, double *chamber_RH);
 void display_T_H(float bTemperature, float cTemperature, double bHum, double cHum);
+void displayLeafData(float co2, float lux, float leaftTemp);
 void displaySolenoidControls();
 float getThermoTemp();
 int getCO2();
 float intoVolts(int bits);
+void initVEML7700();
+float getLux();
 
 // Class Objects
 Adafruit_HDC302x base_T_H = Adafruit_HDC302x();
@@ -94,9 +97,10 @@ Adafruit_HDC302x chamber_T_H = Adafruit_HDC302x();
 Adafruit_HX8357 tft(TFT_CS, TFT_DC, TFT_RST);
 Adafruit_TSC2007 ts; // newer rev 2 touch contoller
 TS_Point p;
-Adafruit_AS7341 as7341;
+
 //AdafruitMAX31855 chamberThermoCup(THERM_CLK,THERM_CS,THERM_DO);  commented out for TC Upgrade - JPP
 Adafruit_MAX31856 leafTC = Adafruit_MAX31856(5, 15, 16, 17); // object for new TC - JPP
+Adafruit_VEML7700 luxSensor;
 
 // Start of the program
 void setup() {
@@ -105,6 +109,7 @@ void setup() {
   Wire.begin();
   hdc302xInit(0x44, 0x47);
   displayInit();
+  initVEML7700();
   layoutHomeScreen();
   //chamberThermoCup.init();
   //calibrateTherm(); commented out for TC upgrade - JPP
@@ -128,11 +133,13 @@ void loop() {
 
   readTS();
   if((millis() - lastPrint) > 1000){
-    //getAS7341Readings(as7341Readings, as7341Counts);
-    //nmToBars(as7341Counts);
-    display_T_H(baseTempReading, chamberTempReading, baseRHReading, chamberRHReading);
-    
+    co2Val = getCO2();
+    luxReading = getLux();
     leafThermoTemp = getThermoTemp();
+    displayLeafData(co2Val, luxReading, leafThermoTemp);
+    //display_T_H(baseTempReading, chamberTempReading, baseRHReading, chamberRHReading);
+    
+    
     Serial.printf("Base Temp: %0.1f\nBase RH: %0.1f\nChamber Temp: %0.1f\nChamber RH: %0.1f\nleaf temp: %0.1f\n", baseTempReading, baseRHReading, chamberTempReading, chamberRHReading, leafThermoTemp);
     lastPrint = millis();
   }
@@ -339,8 +346,8 @@ void layoutHomeScreen(){
   tft.drawRect(dataOriginLux,0,(barGraphBox_W/3)+2,barGraphBox_H, HX8357_WHITE);  
   tft.drawRect(dataOriginLeafTemp, 0, (barGraphBox_W/3)+1, barGraphBox_H,HX8357_WHITE);
 
-  tft.drawRect(dataOriginBaseTH,temp_hum_box_H,(DISPLAY_W-76)/2,temp_hum_box_H, HX8357_WHITE);
-  tft.drawRect(dataOriginLeafTH,temp_hum_box_H,(DISPLAY_W-76)/2,temp_hum_box_H, HX8357_WHITE);
+  tft.fillRect(dataOriginBaseTH,temp_hum_box_H,(DISPLAY_W-76)/2,temp_hum_box_H, HX8357_WHITE);
+  tft.fillRect(dataOriginLeafTH,temp_hum_box_H,(DISPLAY_W-76)/2,temp_hum_box_H, HX8357_WHITE);
   //tft.fillCircle(38,55,circleRad,HX8357_BLUE);
   tft.setCursor(32, 74);
   tft.printf("C");
@@ -355,89 +362,7 @@ void layoutHomeScreen(){
   
 }
 
-// Get wavelength 415nm - 680nm readings
-void getAS7341Readings(uint16_t *readingsArray, float *countsArray){
-  
-    if(!as7341.readAllChannels(readingsArray)){
-      Serial.printf("Error reading channels\n");
-      return;
-    }
-    for(int i = 0; i < 12; i++){
-      if(i == 4 || i == 5){
-        continue; 
-      }
-      countsArray[i] = as7341.toBasicCounts(readingsArray[i]);
-    }
-    Serial.printf("415nm: %f\n445nm: %f\n480nm: %f\n515nm: %f\n555nm: %f\n590nm: %f\n630nm: %f\n680nm: %f\n", countsArray[0], countsArray[1],countsArray[2], countsArray[3], countsArray[6], countsArray[7], countsArray[8], countsArray[9]);
-  }
-  
-void nmToBars(float * basicCounts){
-  float graphBars[12];
-  int pixelSpacing = 48;
-  int barWidth = 40;
-  String xAxisLabels[] = {"415nm", "445nm", "480nm", "515nm", "555nm", "590nm", "630nm", "680nm"};
-  //char yAxisLabels[] = {}
-  //int xAxisLabelSpacing = 
-  int min_X_Pos = 94;
-  
 
-  tft.setTextSize(1);
-  for(int k = 0; k < 8; k++){
-    tft.setCursor(min_X_Pos, 151);
-    tft.printf("%s", xAxisLabels[k].c_str());
-    min_X_Pos = min_X_Pos + pixelSpacing;
-  }
-  min_X_Pos = 94;
-  for(int e = 0; e < 10; e++){
-    if(e == 4 || e == 5){
-      continue;
-    }
-    tft.setCursor(min_X_Pos - 5, 1);
-    tft.fillRect(min_X_Pos - 5, 1, barWidth, 10, HX8357_BLACK);
-    tft.printf("%0.2f", basicCounts[e]);
-    min_X_Pos = min_X_Pos + pixelSpacing;
-  }
-  //min_X_Pos = 94;
-  for(int i = 0; i < 10; i++){
-    if(i == 4 || i == 5){
-      continue;
-    }
-    graphBars[i] = mapFloat(basicCounts[i], 0.0, 5.0, 0.0, 130.0);
-    //Serial.printf("%f\n", graphBars[i]);
-  }
-
-
-  tft.fillRect(84, 11, barWidth, 140, HX8357_BLACK);
-  tft.fillRect(84, (140 - graphBars[0]), barWidth, graphBars[0], HX8357_VIOLET);
-
-  tft.fillRect(84 + pixelSpacing, 11, barWidth, 140, HX8357_BLACK);
-  tft.fillRect(84 + pixelSpacing, (140 - graphBars[1]) , barWidth, graphBars[1], HX8357_BLUE);
-
-  tft.fillRect(84 + (pixelSpacing*2), 11, barWidth, 140, HX8357_BLACK);
-  tft.fillRect(84 + (pixelSpacing*2), (140 - graphBars[2]), barWidth, graphBars[2], HX8357_CYAN);
-
-  tft.fillRect(84 + (pixelSpacing*3), 11, barWidth, 140, HX8357_BLACK);
-  tft.fillRect(84 + (pixelSpacing*3), (140 - graphBars[3]), barWidth, graphBars[3], HX8357_GREEN);
-
-  tft.fillRect(84 + (pixelSpacing*4), 11, barWidth, 140, HX8357_BLACK);
-  tft.fillRect(84 + (pixelSpacing*4), (140 - graphBars[6]), barWidth, graphBars[6], HX8357_YELLOW);
-  
-  tft.fillRect(84 + (pixelSpacing*5), 11, barWidth, 140, HX8357_BLACK);
-  tft.fillRect(84 + (pixelSpacing*5), (140 - graphBars[7]), barWidth, graphBars[7], HX8357_ORANGE);  
-
-  tft.fillRect(84 + (pixelSpacing*6), 11, barWidth, 140, HX8357_BLACK);
-  tft.fillRect(84 + (pixelSpacing*6), (140 - graphBars[8]), barWidth, graphBars[8], HX8357_ORANGE);  
-
-  tft.fillRect(84 + (pixelSpacing*7), 11, barWidth, 140, HX8357_BLACK);
-  tft.fillRect(84 + (pixelSpacing*7), (140 - graphBars[9]), barWidth, graphBars[9], HX8357_RED);    
-}
-
-float mapFloat(float value, float inMin, float inMax, float outMin, float outMax) {
-  float newValue;
-
-  newValue = value * ((outMax-outMin)/(inMax-inMin)) + outMin;
-  return newValue;
-}
 
 void get_HDC_T_H(float *base_T, double *base_RH, float *chamber_T, double *chamber_RH){
   double baseTemp, chamberTemp;
@@ -458,20 +383,23 @@ void display_T_H(float bTemperature, float cTemperature, double bHum, double cHu
   //tft.fillRect(76,160,(DISPLAY_W-76)/2,160, HX8357_VIOLET);
   tft.setCursor(120, 12); // (480 - 76)/3 = 135 - 76 = 59 + 76 = = 106
   tft.printf("CO2");
+  tft.fillRect(105, 80, 72, 18, HX8357_BLACK);
   tft.setCursor(105, 80);
-  tft.printf("%0.1f\r", bTemperature);
+  tft.printf("%0.2f\r", bTemperature);
 
   tft.setCursor(250, 12);
   tft.printf("Lux");
+  tft.fillRect(251, 80, 72, 18, HX8357_BLACK);
   tft.setCursor(251, 80);
-  tft.printf("%0.1f\r", bHum);
+  tft.printf("%i\r", bHum);
 
   tft.setTextSize(2); 
   tft.setCursor(355, 12);
   tft.printf("Leaf TempF");
   tft.setTextSize(3);
+  tft.fillRect(375, 80, 72, 18, HX8357_BLACK);
   tft.setCursor(375, 80);
-  tft.printf("%0.1f\r", cTemperature);
+  tft.printf("%0.2f\r", cTemperature);
 
   // tft.setCursor(304, 250);
   // tft.printf("Chamber RH");
@@ -564,3 +492,45 @@ int co2Concentration;
 
 }
 
+void displayLeafData(float co2, float lux, float leaftTemp){
+  tft.setTextSize(3);
+  //tft.drawRect(77,160,140,160,HX8357_WHITE);
+
+  //tft.fillRect(76,160,(DISPLAY_W-76)/2,160, HX8357_VIOLET);
+  tft.setCursor(120, 12); // (480 - 76)/3 = 135 - 76 = 59 + 76 = = 106
+  tft.printf("CO2");
+  tft.fillRect(105, 80, 72, 18, HX8357_BLACK);
+  tft.setCursor(105, 80);
+  tft.printf("%0.2f\r", co2);
+
+  tft.setCursor(250, 12);
+  tft.printf("Lux");
+  tft.fillRect(251, 80, 72, 18, HX8357_BLACK);
+  tft.setCursor(251, 80);
+  tft.printf("%0.2f\r", lux);
+
+  tft.setTextSize(2); 
+  tft.setCursor(355, 12);
+  tft.printf("Leaf TempF");
+  tft.setTextSize(3);
+  tft.fillRect(375, 80, 72, 18, HX8357_BLACK);
+  tft.setCursor(375, 80);
+  tft.printf("%0.2f\r", leaftTemp);
+
+}
+
+
+void initVEML7700(){
+  if(!luxSensor.begin()){
+    Serial.printf("VEML7700 not recognized\n");
+  }
+  else{
+    Serial.printf("VEML up and running!\n");
+  }
+  luxSensor.setGain(VEML7700_GAIN_1_8);
+  luxSensor.setIntegrationTime(VEML7700_IT_100MS);
+}
+
+float getLux(){
+  return luxSensor.readLux();
+}
