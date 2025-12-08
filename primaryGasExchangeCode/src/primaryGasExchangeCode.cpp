@@ -62,6 +62,11 @@ float chamberTempReading;
 double chamberRHReading;
 float leafThermoTemp;
 
+int dataOriginCo2 = 76;
+int dataOriginLux = 211;
+int dataOriginLeafTemp = 345;
+int dataOriginBaseTH = 76;
+int dataOriginLeafTH = 278;
 
 
 
@@ -104,7 +109,7 @@ void setup() {
   //chamberThermoCup.init();
   //calibrateTherm(); commented out for TC upgrade - JPP
 
-  initAS7341(100,999,AS7341_GAIN_64X);
+
   initSolenoidValves(SOLENOID_1PIN, SOLENOID_2PIN, SOLENOID_3PIN);
   displaySolenoidControls();
 
@@ -117,7 +122,7 @@ void loop() {
 
   readTS();
   if((millis() - lastPrint) > 1000){
-    getAS7341Readings(as7341Readings, as7341Counts);
+    //getAS7341Readings(as7341Readings, as7341Counts);
     //nmToBars(as7341Counts);
     display_T_H(baseTempReading, chamberTempReading, baseRHReading, chamberRHReading);
     
@@ -158,17 +163,6 @@ void displayInit(){
 }
 
 // Initialize spectral sensor-- ATIME: Sets ADC integration step count -- ASTEP: Integration step size -- AGAIN: Controls ADC Gain --- AS7341_GAIN_0_5X, AS7341_GAIN_1X, AS7341_GAIN_2X, AS7341_GAIN_4X, AS7341_GAIN_8X, AS7341_GAIN_16X, AS7341_GAIN_32X, AS7341_GAIN_64X, AS7341_GAIN_128X, AS7341_GAIN_256X, AS7341_GAIN_512X,
-void initAS7341(uint8_t ATIME, uint16_t ASTEP, as7341_gain_t gainFactor){
-  if (!as7341.begin()){ // 
-    Serial.println("Could not find AS7341");
-    while (1) { 
-      delay(10); 
-    }
-  }
-    as7341.setATIME(ATIME);
-    as7341.setASTEP(ASTEP);
-    as7341.setGain(gainFactor);
-}
 
 // Sets pinModes and initializes each solenoid to the LOW mode
 void initSolenoidValves(const int S1_PIN, const int S2_PIN, const int S3_PIN){
@@ -326,6 +320,7 @@ void layoutHomeScreen(){
   int temp_hum_box_W = DISPLAY_W - menuRect_W;
   int barGraphBox_H = DISPLAY_H/2;
   int temp_hum_box_H = DISPLAY_H/2;
+  
   //int circleRad = 25;
   tft.setTextSize(3);
   tft.setRotation(1); // Landscape
@@ -334,12 +329,12 @@ void layoutHomeScreen(){
   tft.fillRect(0,0,menuRect_W,DISPLAY_H/2, HX8357_GREEN); // left panel option menu
   tft.fillRect(0,DISPLAY_H/2,menuRect_W,DISPLAY_H/2, HX8357_RED); // left panel option menu
   //tft.drawLine(0,DISPLAY_H/2,DISPLAY_W*.16,DISPLAY_H/2, HX8357_WHITE);
-  tft.drawRect(76,0,(barGraphBox_W/3)+1,barGraphBox_H, HX8357_WHITE);
-  tft.drawRect(211,0,(barGraphBox_W/3)+2,barGraphBox_H, HX8357_WHITE);  
-  tft.drawRect(345, 0, (barGraphBox_W/3)+1, barGraphBox_H,HX8357_WHITE);
+  tft.drawRect(dataOriginCo2,0,(barGraphBox_W/3)+1,barGraphBox_H, HX8357_WHITE);
+  tft.drawRect(dataOriginLux,0,(barGraphBox_W/3)+2,barGraphBox_H, HX8357_WHITE);  
+  tft.drawRect(dataOriginLeafTemp, 0, (barGraphBox_W/3)+1, barGraphBox_H,HX8357_WHITE);
 
-  tft.drawRect(76,160,(DISPLAY_W-76)/2,temp_hum_box_H, HX8357_WHITE);
-  tft.drawRect(278,160,(DISPLAY_W-76)/2,temp_hum_box_H, HX8357_WHITE);
+  tft.drawRect(dataOriginBaseTH,temp_hum_box_H,(DISPLAY_W-76)/2,temp_hum_box_H, HX8357_WHITE);
+  tft.drawRect(dataOriginLeafTH,temp_hum_box_H,(DISPLAY_W-76)/2,temp_hum_box_H, HX8357_WHITE);
   //tft.fillCircle(38,55,circleRad,HX8357_BLUE);
   tft.setCursor(32, 74);
   tft.printf("C");
@@ -451,30 +446,31 @@ void get_HDC_T_H(float *base_T, double *base_RH, float *chamber_T, double *chamb
 
 void display_T_H(float bTemperature, float cTemperature, double bHum, double cHum){
   get_HDC_T_H(&baseTempReading, &baseRHReading, &chamberTempReading, &chamberRHReading); //Returns the Base & the Chamber Temp+Hum
-  tft.setTextSize(2);
+  tft.setTextSize(3);
   //tft.drawRect(77,160,140,160,HX8357_WHITE);
 
   //tft.fillRect(76,160,(DISPLAY_W-76)/2,160, HX8357_VIOLET);
-  tft.setCursor(110, 170);
-  tft.printf("Base TempF");
-  tft.setCursor(145, 205);
+  tft.setCursor(120, 12); // (480 - 76)/3 = 135 - 76 = 59 + 76 = = 106
+  tft.printf("CO2");
+  tft.setCursor(105, 80);
   tft.printf("%0.1f\r", bTemperature);
 
-
-  tft.setCursor(110, 250);
-  tft.printf("Base RH");
-  tft.setCursor(145, 285);
+  tft.setCursor(250, 12);
+  tft.printf("Lux");
+  tft.setCursor(251, 80);
   tft.printf("%0.1f\r", bHum);
 
-  tft.setCursor(304, 170);
-  tft.printf("Chamber TempF");
-  tft.setCursor(350, 205);
+  tft.setTextSize(2); 
+  tft.setCursor(355, 12);
+  tft.printf("Leaf TempF");
+  tft.setTextSize(3);
+  tft.setCursor(375, 80);
   tft.printf("%0.1f\r", cTemperature);
 
-  tft.setCursor(304, 250);
-  tft.printf("Chamber RH");
-  tft.setCursor(350, 285);
-  tft.printf("%0.1f\r", bHum);
+  // tft.setCursor(304, 250);
+  // tft.printf("Chamber RH");
+  // tft.setCursor(350, 285);
+  // tft.printf("%0.1f\r", bHum);
 
 
   
@@ -561,3 +557,4 @@ int co2Concentration;
   return co2Concentration;
 
 }
+
