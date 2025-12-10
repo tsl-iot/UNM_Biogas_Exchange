@@ -392,9 +392,22 @@ void display_T_H(float bTemperature, float cTemperature, double bHum, double cHu
   //tft.drawRect(77,160,140,160,HX8357_WHITE);
 
   //tft.fillRect(76,160,(DISPLAY_W-76)/2,160, HX8357_VIOLET);
-  tft.setCursor(123, 202);
-  tft.fillRect(123,202,108,24, HX8357_BLACK); // (480 - 76)/3 = 135 - 76 = 59 + 76 = = 106
-  tft.printf("%0.2f\r", bTemperature);
+  tft.setCursor(105, 202);
+  tft.fillRect(105,202,108,24, HX8357_BLACK); // (480 - 76)/3 = 135 - 76 = 59 + 76 = = 106
+  tft.printf("%0.1f\r", bTemperature);
+
+  tft.setCursor(105, 282);
+  tft.fillRect(105,282,108,24, HX8357_BLACK); // (480 - 76)/3 = 135 - 76 = 59 + 76 = = 106
+  tft.printf("%0.1f\r", bHum);
+
+  tft.setCursor(300, 202);
+  tft.fillRect(300,202,108,24, HX8357_BLACK); // (480 - 76)/3 = 135 - 76 = 59 + 76 = = 106
+  tft.printf("%0.1f\r", cTemperature);
+
+  tft.setCursor(300, 282);
+  tft.fillRect(300,282,108,24, HX8357_BLACK); // (480 - 76)/3 = 135 - 76 = 59 + 76 = = 106
+  tft.printf("%0.1f\r", cHum);
+  
 
   // tft.setCursor(250, 12);
   // tft.printf("Lux");
@@ -497,13 +510,13 @@ void displayLeafData(float co2, float lux, float leaftTemp){
   tft.printf("%0.2f\r", co2);
 
   
-  tft.fillRect(230, 80, 90, 24, HX8357_BLACK);
-  tft.setCursor(230, 80);
+  tft.fillRect(240, 80, 90, 24, HX8357_BLACK);
+  tft.setCursor(240, 80);
   tft.printf("%0.1f\r", lux);
 
   
-  tft.fillRect(375, 80, 90, 24, HX8357_BLACK);
-  tft.setCursor(375, 80);
+  tft.fillRect(365, 80, 90, 24, HX8357_BLACK);
+  tft.setCursor(365, 80);
   tft.printf("%0.2f\r", leaftTemp);
 
 }
