@@ -86,4 +86,18 @@
 //   newValue = value * ((outMax-outMin)/(inMax-inMin)) + outMin;
 //   return newValue;
 // }
+
+// void displaySolenoidControls(){
+//   int buttonRad = 35;
+
+// tft.drawCircle(347, 205, buttonRad, HX8357_WHITE);
+// tft.setCursor(325, 185);
+// tft.printf("S1");
+// tft.drawCircle(274, 265, buttonRad, HX8357_WHITE);
+// tft.setCursor(252, 245);
+// tft.printf("S2");
+// tft.drawCircle(423, 265, buttonRad, HX8357_WHITE);
+// tft.setCursor(401, 245);
+// tft.printf("S3");
+// }
 #endif //commentedOutCode_h

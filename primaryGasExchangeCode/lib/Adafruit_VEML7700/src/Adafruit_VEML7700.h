@@ -17,8 +17,8 @@
 #ifndef _ADAFRUIT_VEML7700_H
 #define _ADAFRUIT_VEML7700_H
 
-#include "Adafruit_I2CDevice.h"
-#include "Adafruit_I2CRegister.h"
+#include "Adafruit_I2CDeviceV.h"
+#include "Adafruit_I2CRegisterV.h"
 
 #define VEML7700_I2CADDR_DEFAULT 0x10 ///< I2C address
 
@@ -59,10 +59,10 @@
  *    @brief  Class that stores state and functions for interacting with
  *            VEML7700 Lux Sensor
  */
-class Adafruit_VEML7700
+class Adafruit_VEML7700_
 {
 public:
-  Adafruit_VEML7700();
+  Adafruit_VEML7700_();
   boolean begin(TwoWire *theWire = &Wire);
 
   void enable(bool enable);
@@ -92,15 +92,15 @@ public:
   float readWhite();
 
 private:
-  Adafruit_I2CRegister *ALS_Config, *ALS_Data, *White_Data,
+  Adafruit_I2CRegister_ *ALS_Config, *ALS_Data, *White_Data,
       *ALS_HighThreshold, *ALS_LowThreshold, *Power_Saving, *Interrupt_Status;
-  Adafruit_I2CRegisterBits *ALS_Shutdown, *ALS_Interrupt_Enable,
+  Adafruit_I2CRegisterBits_ *ALS_Shutdown, *ALS_Interrupt_Enable,
       *ALS_Persistence, *ALS_Integration_Time, *ALS_Gain,
       *PowerSave_Enable, *PowerSave_Mode;
 
   float normalize(float value);
 
-  Adafruit_I2CDevice *i2c_dev;
+  Adafruit_I2CDevice_ *i2c_dev;
 };
 
 #endif

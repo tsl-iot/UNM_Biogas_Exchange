@@ -1,21 +1,22 @@
-#include "Adafruit_I2CDevice.h"
+
+#include "Adafruit_I2CDeviceV.h"
 
 //#define DEBUG_SERIAL Serial
 
-Adafruit_I2CDevice::Adafruit_I2CDevice(uint8_t addr, TwoWire *theWire) {
+Adafruit_I2CDevice_::Adafruit_I2CDevice_(uint8_t addr, TwoWire *theWire) {
   _addr = addr;
   _wire = theWire;
   _begun = false;
 }
 
-bool Adafruit_I2CDevice::begin(void) {
+bool Adafruit_I2CDevice_::begin(void) {
   _wire->begin();
   _begun = true;
 
   return detected();
 }
 
-bool Adafruit_I2CDevice::detected(void) {
+bool Adafruit_I2CDevice_::detected(void) {
   // Init I2C if not done yet
   if (!_begun && !begin()) {
     return false;
@@ -29,7 +30,7 @@ bool Adafruit_I2CDevice::detected(void) {
   return false;
 }
 
-bool Adafruit_I2CDevice::write(uint8_t *buffer, size_t len, bool stop, uint8_t *prefix_buffer, size_t prefix_len) {
+bool Adafruit_I2CDevice_::write(uint8_t *buffer, size_t len, bool stop, uint8_t *prefix_buffer, size_t prefix_len) {
   if ((len+prefix_len) > 32) {
     // currently not guaranteed to work if more than 32 bytes!
     // we will need to find out if some platforms have larger
@@ -84,7 +85,7 @@ bool Adafruit_I2CDevice::write(uint8_t *buffer, size_t len, bool stop, uint8_t *
   return (_wire -> endTransmission(stop) == 0);
 }
 
-bool Adafruit_I2CDevice::read(uint8_t *buffer, size_t len, bool stop) {
+bool Adafruit_I2CDevice_::read(uint8_t *buffer, size_t len, bool stop) {
   if (len > 32) {
     // currently not guaranteed to work if more than 32 bytes!
     // we will need to find out if some platforms have larger
@@ -124,7 +125,7 @@ bool Adafruit_I2CDevice::read(uint8_t *buffer, size_t len, bool stop) {
 }
 
 
-bool Adafruit_I2CDevice::write_then_read(uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, bool stop) {
+bool Adafruit_I2CDevice_::write_then_read(uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, bool stop) {
   if (! write(write_buffer, write_len, stop)) {
     return false;
   }
@@ -134,6 +135,7 @@ bool Adafruit_I2CDevice::write_then_read(uint8_t *write_buffer, size_t write_len
 
 
 
-uint8_t Adafruit_I2CDevice::address(void) {
+uint8_t Adafruit_I2CDevice_::address(void) {
   return _addr;
 }
+

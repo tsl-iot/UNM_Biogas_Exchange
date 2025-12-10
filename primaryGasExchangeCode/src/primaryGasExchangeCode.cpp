@@ -21,6 +21,9 @@
 #include "../lib/Adafruit_TSC2007/src/Adafruit_TSC2007.h"
 #include "../lib/Adafruit_BusIO_Register/src/Adafruit_BusIO_Register.h"
 #include "../lib/Adafruit_HDC302x/src/Adafruit_HDC302x.h"
+#include "../lib/Adafruit_VEML7700/src/Adafruit_VEML7700.h"
+#include "../lib/Adafruit_MAX31856_library/src/Adafruit_MAX31856.h"
+
 SYSTEM_MODE(SEMI_AUTOMATIC);
 
 // Constants
@@ -84,7 +87,7 @@ void initSolenoidValves(const int S1_PIN, const int S2_PIN, const int S3_PIN);
 void get_HDC_T_H(float *base_T, double *base_RH, float *chamber_T, double *chamber_RH);
 void display_T_H(float bTemperature, float cTemperature, double bHum, double cHum);
 void displayLeafData(float co2, float lux, float leaftTemp);
-void displaySolenoidControls();
+
 float getThermoTemp();
 int getCO2();
 float intoVolts(int bits);
@@ -100,13 +103,12 @@ TS_Point p;
 
 //AdafruitMAX31855 chamberThermoCup(THERM_CLK,THERM_CS,THERM_DO);  commented out for TC Upgrade - JPP
 Adafruit_MAX31856 leafTC = Adafruit_MAX31856(5, 15, 16, 17); // object for new TC - JPP
-Adafruit_VEML7700 luxSensor;
+Adafruit_VEML7700_ luxSensor;
 
 // Start of the program
 void setup() {
   Serial.begin(9600);
   waitFor(Serial.isConnected, 5000);
-  Wire.begin();
   hdc302xInit(0x44, 0x47);
   displayInit();
   initVEML7700();
@@ -116,11 +118,10 @@ void setup() {
 
 
   initSolenoidValves(SOLENOID_1PIN, SOLENOID_2PIN, SOLENOID_3PIN);
-  displaySolenoidControls();
+
 
   delay(2000);
-  tft.fillRect(76,160,(DISPLAY_W-76)/2,160, HX8357_VIOLET);
-  tft.fillRect(278,160,(DISPLAY_W-76)/2,160, HX8357_INDIGO);
+
 
 
   // set up for new TC - JPP
@@ -137,10 +138,10 @@ void loop() {
     luxReading = getLux();
     leafThermoTemp = getThermoTemp();
     displayLeafData(co2Val, luxReading, leafThermoTemp);
-    //display_T_H(baseTempReading, chamberTempReading, baseRHReading, chamberRHReading);
+    display_T_H(baseTempReading, chamberTempReading, baseRHReading, chamberRHReading);
     
     
-    Serial.printf("Base Temp: %0.1f\nBase RH: %0.1f\nChamber Temp: %0.1f\nChamber RH: %0.1f\nleaf temp: %0.1f\n", baseTempReading, baseRHReading, chamberTempReading, chamberRHReading, leafThermoTemp);
+    //Serial.printf("Base Temp: %0.1f\nBase RH: %0.1f\nChamber Temp: %0.1f\nChamber RH: %0.1f\nleaf temp: %0.1f\n", baseTempReading, baseRHReading, chamberTempReading, chamberRHReading, leafThermoTemp);
     lastPrint = millis();
   }
 }
@@ -334,32 +335,42 @@ void layoutHomeScreen(){
   int barGraphBox_H = DISPLAY_H/2;
   int temp_hum_box_H = DISPLAY_H/2;
   
-  //int circleRad = 25;
   tft.setTextSize(3);
   tft.setRotation(1); // Landscape
   tft.fillScreen(HX8357_BLACK);
-  //tft.drawRect(0,0,menuRect_W,DISPLAY_H, HX8357_WHITE); // left panel option menu
+
   tft.fillRect(0,0,menuRect_W,DISPLAY_H/2, HX8357_GREEN); // left panel option menu
   tft.fillRect(0,DISPLAY_H/2,menuRect_W,DISPLAY_H/2, HX8357_RED); // left panel option menu
-  //tft.drawLine(0,DISPLAY_H/2,DISPLAY_W*.16,DISPLAY_H/2, HX8357_WHITE);
+
   tft.drawRect(dataOriginCo2,0,(barGraphBox_W/3)+1,barGraphBox_H, HX8357_WHITE);
   tft.drawRect(dataOriginLux,0,(barGraphBox_W/3)+2,barGraphBox_H, HX8357_WHITE);  
   tft.drawRect(dataOriginLeafTemp, 0, (barGraphBox_W/3)+1, barGraphBox_H,HX8357_WHITE);
+  tft.drawRect(76,160,(DISPLAY_W-76)/2,160, HX8357_WHITE);
+  tft.drawRect(278,160,(DISPLAY_W-76)/2,160, HX8357_WHITE);
+  tft.drawLine(76, 240, 480, 240, HX8357_WHITE);
 
-  tft.fillRect(dataOriginBaseTH,temp_hum_box_H,(DISPLAY_W-76)/2,temp_hum_box_H, HX8357_WHITE);
-  tft.fillRect(dataOriginLeafTH,temp_hum_box_H,(DISPLAY_W-76)/2,temp_hum_box_H, HX8357_WHITE);
-  //tft.fillCircle(38,55,circleRad,HX8357_BLUE);
   tft.setCursor(32, 74);
   tft.printf("C");
-  
-  // tft.fillCircle(38,160,circleRad,HX8357_INDIGO);
-  // tft.setCursor(32, 150);
-  // tft.printf("C");
-
-  //tft.fillCircle(38,265,circleRad,HX8357_MAGENTA);
   tft.setCursor(32, 234);
   tft.printf("B");
-  
+
+  tft.setCursor(120, 12); 
+  tft.printf("CO2");
+  tft.setCursor(250, 12);
+  tft.printf("Lux");
+  tft.setTextSize(2); 
+  tft.setCursor(355, 12);
+  tft.printf("Leaf TempF");
+
+  tft.setTextSize(2);
+  tft.setCursor(117, 162);
+  tft.printf("Base TempF\r");
+  tft.setCursor(117, 242);
+  tft.printf("Base RH%c\r", 0x25);
+  tft.setCursor(307, 162);
+  tft.printf("Chamber TempF\r");
+  tft.setCursor(307, 242);
+  tft.printf("Chamber RH%c\r", 0x25);
 }
 
 
@@ -381,25 +392,23 @@ void display_T_H(float bTemperature, float cTemperature, double bHum, double cHu
   //tft.drawRect(77,160,140,160,HX8357_WHITE);
 
   //tft.fillRect(76,160,(DISPLAY_W-76)/2,160, HX8357_VIOLET);
-  tft.setCursor(120, 12); // (480 - 76)/3 = 135 - 76 = 59 + 76 = = 106
-  tft.printf("CO2");
-  tft.fillRect(105, 80, 72, 18, HX8357_BLACK);
-  tft.setCursor(105, 80);
+  tft.setCursor(123, 202);
+  tft.fillRect(123,202,108,24, HX8357_BLACK); // (480 - 76)/3 = 135 - 76 = 59 + 76 = = 106
   tft.printf("%0.2f\r", bTemperature);
 
-  tft.setCursor(250, 12);
-  tft.printf("Lux");
-  tft.fillRect(251, 80, 72, 18, HX8357_BLACK);
-  tft.setCursor(251, 80);
-  tft.printf("%i\r", bHum);
+  // tft.setCursor(250, 12);
+  // tft.printf("Lux");
+  // tft.fillRect(251, 80, 72, 18, HX8357_BLACK);
+  // tft.setCursor(251, 80);
+  // tft.printf("%i\r", bHum);
 
-  tft.setTextSize(2); 
-  tft.setCursor(355, 12);
-  tft.printf("Leaf TempF");
-  tft.setTextSize(3);
-  tft.fillRect(375, 80, 72, 18, HX8357_BLACK);
-  tft.setCursor(375, 80);
-  tft.printf("%0.2f\r", cTemperature);
+  // tft.setTextSize(2); 
+  // tft.setCursor(355, 12);
+  // tft.printf("Leaf TempF");
+  // tft.setTextSize(3);
+  // tft.fillRect(375, 80, 72, 18, HX8357_BLACK);
+  // tft.setCursor(375, 80);
+  // tft.printf("%0.2f\r", cTemperature);
 
   // tft.setCursor(304, 250);
   // tft.printf("Chamber RH");
@@ -432,19 +441,7 @@ void display_T_H(float bTemperature, float cTemperature, double bHum, double cHu
   // tft.printf("%i", (int)humOrCO2);
 }
 
-void displaySolenoidControls(){
-  int buttonRad = 35;
 
-tft.drawCircle(347, 205, buttonRad, HX8357_WHITE);
-tft.setCursor(325, 185);
-tft.printf("S1");
-tft.drawCircle(274, 265, buttonRad, HX8357_WHITE);
-tft.setCursor(252, 245);
-tft.printf("S2");
-tft.drawCircle(423, 265, buttonRad, HX8357_WHITE);
-tft.setCursor(401, 245);
-tft.printf("S3");
-}
 
 float getThermoTemp(){
   double tempC = leafTC.readThermocoupleTemperature();
@@ -494,26 +491,18 @@ int co2Concentration;
 
 void displayLeafData(float co2, float lux, float leaftTemp){
   tft.setTextSize(3);
-  //tft.drawRect(77,160,140,160,HX8357_WHITE);
 
-  //tft.fillRect(76,160,(DISPLAY_W-76)/2,160, HX8357_VIOLET);
-  tft.setCursor(120, 12); // (480 - 76)/3 = 135 - 76 = 59 + 76 = = 106
-  tft.printf("CO2");
-  tft.fillRect(105, 80, 72, 18, HX8357_BLACK);
+  tft.fillRect(105, 80, 90, 24, HX8357_BLACK);
   tft.setCursor(105, 80);
   tft.printf("%0.2f\r", co2);
 
-  tft.setCursor(250, 12);
-  tft.printf("Lux");
-  tft.fillRect(251, 80, 72, 18, HX8357_BLACK);
-  tft.setCursor(251, 80);
-  tft.printf("%0.2f\r", lux);
+  
+  tft.fillRect(230, 80, 90, 24, HX8357_BLACK);
+  tft.setCursor(230, 80);
+  tft.printf("%0.1f\r", lux);
 
-  tft.setTextSize(2); 
-  tft.setCursor(355, 12);
-  tft.printf("Leaf TempF");
-  tft.setTextSize(3);
-  tft.fillRect(375, 80, 72, 18, HX8357_BLACK);
+  
+  tft.fillRect(375, 80, 90, 24, HX8357_BLACK);
   tft.setCursor(375, 80);
   tft.printf("%0.2f\r", leaftTemp);
 

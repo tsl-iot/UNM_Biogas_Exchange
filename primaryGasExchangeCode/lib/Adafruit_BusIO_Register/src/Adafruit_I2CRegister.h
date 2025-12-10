@@ -1,5 +1,5 @@
-#ifndef _ADAFRUIT_I2C_REGISTER_H_
-#define _ADAFRUIT_I2C_REGISTER_H_
+#ifndef _ADAFRUIT_I2CREGISTER_H_
+#define _ADAFRUIT_I2CREGISTER_H_
 
 #include <Adafruit_BusIO_Register.h>
 #include <Arduino.h>

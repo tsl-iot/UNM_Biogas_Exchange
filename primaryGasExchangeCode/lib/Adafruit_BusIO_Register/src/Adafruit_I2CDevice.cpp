@@ -7,6 +7,8 @@
  *    @param  addr The 7-bit I2C address for the device
  *    @param  theWire The I2C bus to use, defaults to &Wire
  */
+
+ 
 Adafruit_I2CDevice::Adafruit_I2CDevice(uint8_t addr, TwoWire *theWire) {
   _addr = addr;
   _wire = theWire;

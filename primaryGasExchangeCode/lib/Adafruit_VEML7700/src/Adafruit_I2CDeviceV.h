@@ -1,12 +1,12 @@
+
+
+#ifndef Adafruit_I2CDeviceV_h
+#define Adafruit_I2CDeviceV_h
 #include "Particle.h"
 
-#ifndef Adafruit_I2CDevice_h
-#define Adafruit_I2CDevice_h
-
-
-class Adafruit_I2CDevice {
+class Adafruit_I2CDevice_{
  public:
-  Adafruit_I2CDevice(uint8_t addr, TwoWire *theWire=&Wire);
+  Adafruit_I2CDevice_(uint8_t addr, TwoWire *theWire=&Wire);
   uint8_t address(void);
   bool begin(void);
   bool detected(void);
