@@ -100,4 +100,23 @@
 // tft.setCursor(401, 245);
 // tft.printf("S3");
 // }
+
+
+  // uint8_t fault = leafTC.readFault();
+  // if (fault) {
+  //   if (fault & MAX31856_FAULT_CJRANGE) Serial.println("Cold Junction Range Fault");
+  //   if (fault & MAX31856_FAULT_TCRANGE) Serial.println("Thermocouple Range Fault");
+  //   if (fault & MAX31856_FAULT_CJHIGH)  Serial.println("Cold Junction High Fault");
+  //   if (fault & MAX31856_FAULT_CJLOW)   Serial.println("Cold Junction Low Fault");
+  //   if (fault & MAX31856_FAULT_TCHIGH)  Serial.println("Thermocouple High Fault");
+  //   if (fault & MAX31856_FAULT_TCLOW)   Serial.println("Thermocouple Low Fault");
+  //   if (fault & MAX31856_FAULT_OVUV)    Serial.println("Over/Under Voltage Fault");
+  //   if (fault & MAX31856_FAULT_OPEN)    Serial.println("Thermocouple Open Fault");
+  //   return 0.0;
+  // }
+  //else{
+    // Serial.printf("\n");
+    // Serial.println("Current temp:");
+    // Serial.println(tempF);
+    // Serial.printf("\n");
 #endif //commentedOutCode_h

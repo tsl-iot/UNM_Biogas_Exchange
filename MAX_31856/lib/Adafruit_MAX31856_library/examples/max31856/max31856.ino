@@ -1,26 +1,18 @@
-/* 
- * Project myProject
- * Author: Your Name
- * Date: 
- * For comprehensive documentation and examples, please visit:
- * https://docs.particle.io/firmware/best-practices/firmware-template/
- */
-
-// Include Particle Device OS APIs
-#include "Particle.h"
 #include <Adafruit_MAX31856.h>
-// Let Device OS manage the connection to the Particle Cloud
-SYSTEM_MODE(SEMI_AUTOMATIC);
 
-Adafruit_MAX31856 maxthermo = Adafruit_MAX31856(D18, D15, D16, D17);
+// Use software SPI: CS, DI, DO, CLK
+Adafruit_MAX31856 maxthermo = Adafruit_MAX31856(10, 11, 12, 13);
+// use hardware SPI, just pass in the CS pin
+//Adafruit_MAX31856 maxthermo = Adafruit_MAX31856(10);
 
-
-// setup() runs once, when the device is first turned on
 void setup() {
-  Serial.begin(9600);
-  waitFor(Serial.isConnected, 5000);
+  Serial.begin(115200);
+  Serial.println("MAX31856 thermocouple test");
+
   maxthermo.begin();
+
   maxthermo.setThermocoupleType(MAX31856_TCTYPE_K);
+
   Serial.print("Thermocouple type: ");
   switch (maxthermo.getThermocoupleType() ) {
     case MAX31856_TCTYPE_B: Serial.println("B Type"); break;
@@ -36,7 +28,7 @@ void setup() {
     default: Serial.println("Unknown"); break;
   }
 
-  delay(10000);
+
 }
 
 void loop() {
