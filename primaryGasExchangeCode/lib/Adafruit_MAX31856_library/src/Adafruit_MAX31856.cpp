@@ -42,7 +42,7 @@
 #include <stdlib.h>
 #include <SPI.h>
 
-static SPISettings max31856_spisettings = SPISettings(500000, MSBFIRST, SPI_MODE1);
+static SPISettings max31856_spisettings = SPISettings(500000, MSBFIRST, SPI_MODE2);
 
 
 /**************************************************************************/
@@ -81,7 +81,7 @@ Adafruit_MAX31856::Adafruit_MAX31856(int8_t spi_cs) {
 /**************************************************************************/
 boolean Adafruit_MAX31856::begin(void) {
   pinMode(_cs, OUTPUT);
-  digitalWrite(_cs, HIGH);
+  digitalWrite(_cs, LOW);
 
   if (_sclk != -1) {
     //define pin modes
@@ -90,7 +90,7 @@ boolean Adafruit_MAX31856::begin(void) {
     pinMode(_miso, INPUT);
   } else {
     //start and configure hardware SPI
-    SPI.begin();
+    SPI1.begin();
   }
 
   // assert on any fault
@@ -287,7 +287,7 @@ void Adafruit_MAX31856::readRegisterN(uint8_t addr, uint8_t buffer[], uint8_t n)
   addr &= 0x7F; // make sure top bit is not set
 
   if (_sclk == -1)
-    SPI.beginTransaction(max31856_spisettings);
+    SPI1.beginTransaction(max31856_spisettings);
   else 
     digitalWrite(_sclk, HIGH);
 
@@ -304,7 +304,7 @@ void Adafruit_MAX31856::readRegisterN(uint8_t addr, uint8_t buffer[], uint8_t n)
   //Serial.println();
 
   if (_sclk == -1)
-    SPI.endTransaction();
+    SPI1.endTransaction();
 
   digitalWrite(_cs, HIGH);
 }
@@ -314,7 +314,7 @@ void Adafruit_MAX31856::writeRegister8(uint8_t addr, uint8_t data) {
   addr |= 0x80; // make sure top bit is set
 
   if (_sclk == -1)
-    SPI.beginTransaction(max31856_spisettings);
+    SPI1.beginTransaction(max31856_spisettings);
   else 
     digitalWrite(_sclk, HIGH);
 
@@ -326,7 +326,7 @@ void Adafruit_MAX31856::writeRegister8(uint8_t addr, uint8_t data) {
   //Serial.print("$"); Serial.print(addr, HEX); Serial.print(" = 0x"); Serial.println(data, HEX);
 
   if (_sclk == -1)
-    SPI.endTransaction();
+    SPI1.endTransaction();
 
   digitalWrite(_cs, HIGH);
 }
@@ -335,7 +335,7 @@ void Adafruit_MAX31856::writeRegister8(uint8_t addr, uint8_t data) {
 
 uint8_t Adafruit_MAX31856::spixfer(uint8_t x) {
   if (_sclk == -1)
-    return SPI.transfer(x);
+    return SPI1.transfer(x);
 
   // software spi
   //Serial.println("Software SPI");

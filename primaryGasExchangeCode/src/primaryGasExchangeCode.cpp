@@ -27,10 +27,9 @@
 SYSTEM_MODE(SEMI_AUTOMATIC);
 
 // Constants
-const int TFT_DC = D5;
-const int TFT_CS = D4;
-const int STMPE_CS = D3;
-const int SD_CS = D2;
+const int TFT_DC = D9;
+const int TFT_CS = D8;
+const int STMPE_CS = S3;
 const int TFT_RST = -1;
 const int TSC_IRQ = STMPE_CS;
 
@@ -92,18 +91,18 @@ void displayLeafData(float co2, float lux, float leaftTemp);
 // Class Objects
 Adafruit_HDC302x base_T_H = Adafruit_HDC302x();
 Adafruit_HDC302x chamber_T_H = Adafruit_HDC302x();
-Adafruit_HX8357 tft(TFT_CS, TFT_DC, TFT_RST);
+Adafruit_HX8357 tft(TFT_CS, TFT_DC, TFT_RST, HX8357D, &SPI);
 Adafruit_TSC2007 ts; // newer rev 2 touch contoller
 TS_Point p;
 
-Adafruit_MAX31856 leafTC = Adafruit_MAX31856(S3, MOSI, MISO, SCK); // object for new TC - JPP ---- int8_t spi_cs, int8_t spi_mosi, int8_t spi_miso, int8_t spi_clk
+Adafruit_MAX31856 leafTC = Adafruit_MAX31856(D5); // object for new TC - JPP ---- int8_t spi_cs, int8_t spi_mosi, int8_t spi_miso, int8_t spi_clk
 Adafruit_VEML7700_ luxSensor;
 
 // Start of the program
 void setup() {
   Serial.begin(9600);
   waitFor(Serial.isConnected, 5000);
-
+  SPI1.begin();
   hdc302xInit(0x44, 0x47);
   displayInit();
   initVEML7700();
@@ -132,11 +131,11 @@ void loop() {
 // Use address 0x44 for address_1 and 0x47 for address_2
 void hdc302xInit(int baseAddress, int chamberAddress){
   if(!base_T_H.begin(baseAddress)){
-    Serial.printf("Could not find Base temp/hum sensor?");
+    //Serial.printf("Could not find Base temp/hum sensor?");
     //while (1);
   }
   if(!chamber_T_H.begin(chamberAddress)){
-    Serial.printf("Could not find chamber temp/hum sensor?");
+    //Serial.printf("Could not find chamber temp/hum sensor?");
     //while (1);
   }
 }
@@ -144,10 +143,10 @@ void hdc302xInit(int baseAddress, int chamberAddress){
 // Use address 0x48 for screenAddress
 void displayInit(){
   if (!ts.begin(0x48)) {
-    Serial.printf("Couldn't start TSC2007 touchscreen controller\n");
+    //Serial.printf("Couldn't start TSC2007 touchscreen controller\n");
   }
   else{
-    Serial.printf("Touchscreen started\n");
+    //Serial.printf("Touchscreen started\n");
   }
 
   tft.begin();
@@ -173,10 +172,10 @@ void initSolenoidValves(const int S1_PIN, const int S2_PIN, const int S3_PIN){
 
 void initVEML7700(){
   if(!luxSensor.begin()){
-    Serial.printf("VEML7700 not recognized\n");
+    //Serial.printf("VEML7700 not recognized\n");
   }
   else{
-    Serial.printf("VEML up and running!\n");
+    //Serial.printf("VEML up and running!\n");
   }
   luxSensor.setGain(VEML7700_GAIN_1_8);
   luxSensor.setIntegrationTime(VEML7700_IT_100MS);
@@ -238,11 +237,11 @@ void readTS(){
   p.y = map(p.y, TS_MINY, TS_MAXY, 0, tft.width());
   p.x = map(p.x, TS_MINX, TS_MAXX, 0, tft.height());
   if(p.z > 5){
-    Serial.printf("X: %i\nY: %i\nPressure: %i\n", p.x, p.y, p.z);
+    //Serial.printf("X: %i\nY: %i\nPressure: %i\n", p.x, p.y, p.z);
     //Green path 
     if((p.y > 0) && (p.y < 80)){
       if((p.x > 160) && (p.x < 320)){
-        Serial.printf("Opening  all solenoids\n");
+        //Serial.printf("Opening  all solenoids\n");
         digitalWrite(SOLENOID_1PIN, HIGH);
         digitalWrite(SOLENOID_2PIN, HIGH);
         digitalWrite(SOLENOID_3PIN, HIGH);
@@ -250,7 +249,7 @@ void readTS(){
       }
       // Red path
       else if((p.x > 0) && (p.x < 160)){
-        Serial.printf("Closing all solenoids\n");
+        //Serial.printf("Closing all solenoids\n");
         digitalWrite(SOLENOID_1PIN, LOW);
         digitalWrite(SOLENOID_2PIN, LOW);
         digitalWrite(SOLENOID_3PIN, LOW);
