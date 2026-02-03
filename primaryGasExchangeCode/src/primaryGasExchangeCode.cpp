@@ -1,9 +1,10 @@
 /* 
  * Project Main code that integrates temp/hum, and light sensors. Controls air flow by actuating solenoids. Used by UNM Bio Dept. 
- * Author: Edward Ishman
- * Date: 
- * For comprehensive documentation and examples, please visit:
- * https://docs.particle.io/firmware/best-practices/firmware-template/
+ * Author: Edward Ishman, Jon Phillips, Adrian Pijoan, James Black --- Central New Mexico Community College's Technology Solutions Lab
+ * Date: June 26th 2025
+ * 
+ *
+ * 
  */
 
 #include "Particle.h"
@@ -12,7 +13,7 @@
 #include "Adafruit_TSC2007.h"
 #include <Adafruit_HDC302x.h>
 
-#include <Adafruit_MAX31856.h>  //added for new TC - JPP
+
 #include "IoTClassroom_CNM.h"
 #include "Adafruit_VEML7700.h"
 
@@ -22,14 +23,14 @@
 #include "../lib/Adafruit_BusIO_Register/src/Adafruit_BusIO_Register.h"
 #include "../lib/Adafruit_HDC302x/src/Adafruit_HDC302x.h"
 #include "../lib/Adafruit_VEML7700/src/Adafruit_VEML7700.h"
-#include "../lib/Adafruit_MAX31856_library/src/Adafruit_MAX31856.h"
+
 
 SYSTEM_MODE(SEMI_AUTOMATIC);
 
 // Constants
-const int TFT_DC = D9;
-const int TFT_CS = D8;
-const int STMPE_CS = S3;
+const int TFT_DC = D5;
+const int TFT_CS = D4;
+const int STMPE_CS = D3;
 const int TFT_RST = -1;
 const int TSC_IRQ = STMPE_CS;
 
@@ -47,6 +48,7 @@ const int SOLENOID_2PIN = D10;
 const int SOLENOID_3PIN = D19;
 
 const int LICORINPUTPIN = A5;
+const int TC_PIN = A2;
 
 // Variables
 int16_t min_x, max_x, min_y, max_y;
@@ -85,33 +87,26 @@ void get_HDC_T_H(float *base_T, double *base_RH, float *chamber_T, double *chamb
 void display_T_H(float bTemperature, float cTemperature, double bHum, double cHum);
 void displayLeafData(float co2, float lux, float leaftTemp);
 
-
-
-
 // Class Objects
 Adafruit_HDC302x base_T_H = Adafruit_HDC302x();
 Adafruit_HDC302x chamber_T_H = Adafruit_HDC302x();
-Adafruit_HX8357 tft(TFT_CS, TFT_DC, TFT_RST, HX8357D, &SPI);
+Adafruit_HX8357 tft(TFT_CS, TFT_DC, TFT_RST); // for board 0 add the following: HX8357D, &SPI
 Adafruit_TSC2007 ts; // newer rev 2 touch contoller
 TS_Point p;
-
-Adafruit_MAX31856 leafTC = Adafruit_MAX31856(D5); // object for new TC - JPP ---- int8_t spi_cs, int8_t spi_mosi, int8_t spi_miso, int8_t spi_clk
 Adafruit_VEML7700_ luxSensor;
 
 // Start of the program
 void setup() {
   Serial.begin(9600);
   waitFor(Serial.isConnected, 5000);
-  SPI1.begin();
   hdc302xInit(0x44, 0x47);
   displayInit();
   initVEML7700();
   layoutHomeScreen();
   initSolenoidValves(SOLENOID_1PIN, SOLENOID_2PIN, SOLENOID_3PIN);
+  pinMode(LICORINPUTPIN, INPUT);
+  pinMode(TC_PIN, INPUT);
   delay(2000);
-  // set up for new TC - JPP
-  leafTC.begin();
-  leafTC.setThermocoupleType(MAX31856_TCTYPE_K);
 }
 
 void loop() {
@@ -210,19 +205,23 @@ void layoutHomeScreen(){
 
   tft.setCursor(120, 12); 
   tft.printf("CO2");
+  tft.setTextSize(2);
+  tft.setCursor(130, 38); 
+  tft.printf("ppm");
+  tft.setTextSize(3);
   tft.setCursor(250, 12);
   tft.printf("Lux");
   tft.setTextSize(2); 
   tft.setCursor(355, 12);
-  tft.printf("Leaf TempF");
+  tft.printf("Leaf TempC");
 
   tft.setTextSize(2);
   tft.setCursor(117, 162);
-  tft.printf("Base TempF\r");
+  tft.printf("Base TempC\r");
   tft.setCursor(117, 242);
   tft.printf("Base RH%c\r", 0x25);
   tft.setCursor(307, 162);
-  tft.printf("Chamber TempF\r");
+  tft.printf("Chamber TempC\r");
   tft.setCursor(307, 242);
   tft.printf("Chamber RH%c\r", 0x25);
 }
@@ -265,26 +264,29 @@ void get_HDC_T_H(float *base_T, double *base_RH, float *chamber_T, double *chamb
 
   base_T_H.readTemperatureHumidityOnDemand(baseTemp, *base_RH,TRIGGERMODE_LP0);
   chamber_T_H.readTemperatureHumidityOnDemand(chamberTemp, *chamber_RH,TRIGGERMODE_LP0);
-  *base_T = (baseTemp * (9.0/5.0)) + 32;
-  *chamber_T = (chamberTemp * (9.0/5.0)) + 32;
+  *base_T = baseTemp ;
+  *chamber_T = chamberTemp;
   //Serial.printf("Base Temp: %0.1f\nBase RH: %0.1f\nChamber Temp: %0.1f\nChamber RH: %0.1f\n", *base_T, *base_RH, *chamber_T, *chamber_RH);
   
 }
 
 float getThermoTemp(){
-  float tempC = leafTC.readThermocoupleTemperature();
-  float tempF = tempC * (9.0/5.0)  + 32.0;
-  return tempF;
-  }
+  int reading;
+  float voltage;
+  float tempC;
+
+  reading = analogRead(TC_PIN);
+  voltage = intoVolts(reading);
+  tempC = (voltage - 1.25) / 0.005;
+  return tempC;
+}
   
-
-
 float getCO2(){
   int measuredBits;
   float measuredVolts;
   float co2Concentration;
 
-  measuredBits = analogRead(A5);
+  measuredBits = analogRead(LICORINPUTPIN);
   measuredVolts = intoVolts(measuredBits);
   co2Concentration = 2000*(measuredVolts/5.0);
   return co2Concentration;
